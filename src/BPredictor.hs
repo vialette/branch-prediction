@@ -45,6 +45,7 @@ q0ReadA = readA initS
 insertA :: K -> T a -> A a -> A a
 insertA k v a = a { trans = M.insert k v (trans a) }
 
+--
 emptyA :: A a
 emptyA = A { q0 = initS, trans = M.empty }
 
