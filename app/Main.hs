@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib
+import Auto
 
 main :: IO ()
-main = someFunc
+main = print $ mkA "ab" "ab"

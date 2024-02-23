@@ -25,8 +25,7 @@ source-repository head
 
 library
   exposed-modules:
-      BPredictor
-      Lib
+      Auto
   other-modules:
       Paths_branch_prediction
   autogen-modules:

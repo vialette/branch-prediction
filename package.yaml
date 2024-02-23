@@ -37,6 +37,8 @@ ghc-options:
 
 library:
   source-dirs: src
+  exposed-modules:
+    - Auto
 
 executables:
   branch-prediction-exe:
