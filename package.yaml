@@ -21,8 +21,8 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
-- composition-extra >= 2.1
 - containers >= 0.6
+- extra >= 1.7
 
 ghc-options:
 - -Wall
@@ -38,7 +38,14 @@ ghc-options:
 library:
   source-dirs: src
   exposed-modules:
-    - Auto
+    - BPredictor.Auto.Auto
+    - BPredictor.Auto.BP2Auto
+    - BPredictor.Auto.PAuto
+    - BPredictor.Auto.WAuto
+    - BPredictor.FST.GFST
+    - BPredictor.FST.BP2FST
+    - BPredictor.FST.WFST
+    - BPredictor.Nat
 
 executables:
   branch-prediction-exe:

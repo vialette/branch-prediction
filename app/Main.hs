@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Auto
+import BPredictor.Auto.WAuto
 
 main :: IO ()
 main = print $ mkA "ab" "ab"
