@@ -26,7 +26,6 @@ import           Control.Arrow
 import qualified Data.Foldable      as F
 import qualified Data.List          as L
 import           Data.Map.Strict    as M
-import           Data.Maybe
 
 -- Alphabet
 type Alph = String
