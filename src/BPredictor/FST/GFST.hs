@@ -28,6 +28,7 @@ import qualified Data.List          as L
 import           Data.Map.Strict    as M
 import           Data.Maybe
 
+-- Alphabet
 type Alph = String
 
 -- State of finite state transducers
@@ -46,12 +47,11 @@ instance Show a => Show (Q a) where
   show Q { getQ = q } = show q
 
 instance (Show a, Show r, Show w, Ord a) => Show (FST a r w) where
-  show fst@FST { getM = m } =
-    L.intercalate "\n" [showQ q | q <- qsFST fst]
+  show fST@FST { getM = m } =
+    L.intercalate "\n" [showQ q | q <- qsFST fST]
       where
         showQ q = "state=" ++ show q ++ " transitions=[" ++ showT q ++ "]"
-        showT q = L.intercalate "," [goShowT t | let Just m' = M.lookup q m
-                                               , t <- M.assocs m']
+        showT q = L.intercalate "," [goShowT t | let Just m' = M.lookup q m, t <- M.assocs m']
           where
             goShowT (x, t) = "(read="  ++ show x              ++
                              ",write=" ++ show (getOutputT t) ++

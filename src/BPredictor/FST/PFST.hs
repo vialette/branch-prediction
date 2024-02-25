@@ -8,11 +8,6 @@ module BPredictor.FST.PFST (
 , mkFST
 ) where
 
-import           Control.Arrow
-import qualified Data.Foldable      as F
-import qualified Data.List          as L
-import qualified Data.Set           as Set
-
 import qualified BPredictor.FST.GFST   as GFST
 import qualified BPredictor.FST.BP2FST as BP2FST
 import qualified BPredictor.FST.WFST   as WFST
@@ -33,9 +28,13 @@ mkFST alph xs = goMkFST [initQ] GFST.emptyFST
     -- the associated 2-bit predictor finite state transducer
     bp2FST = BP2FST.mkFST
 
-    -- the initial state of the product finite state transducer
+    -- the initial state of wFST
     initQWFST   = GFST.mkQ WFST.emptyString
+
+    -- the initial state of bp2FST
     initQBP2FST = GFST.mkQ BP2FST.Nu2
+
+    -- the initial state of the product finite state transducer
     initQ :: Q
     initQ = GFST.mkQ (initQWFST, initQBP2FST)
 
@@ -50,7 +49,7 @@ mkFST alph xs = goMkFST [initQ] GFST.emptyFST
         qBP2FST = snd $ GFST.getQ q
 
         -- develop the current state of the product finite state transducer
-        -- with all characters of the alphabet
+        -- for every character of the alphabet
         (qs', pFST') = F.foldr step ([], pFST) alph
           where
             step :: Char -> ([Q], FST) -> ([Q], FST)
