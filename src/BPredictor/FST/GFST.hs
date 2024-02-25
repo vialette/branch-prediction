@@ -49,12 +49,11 @@ instance (Show a, Show r, Show w, Ord a) => Show (FST a r w) where
   show fST@FST { getM = m } =
     L.intercalate "\n" [showQ q | q <- qsFST fST]
       where
-        showQ q = "state=" ++ show q ++ " transitions=[" ++ showT q ++ "]"
-        showT q = L.intercalate "," [goShowT t | let Just m' = M.lookup q m, t <- M.assocs m']
+        showQ q = L.intercalate "\n" [goShowT t | let Just m' = M.lookup q m, t <- M.assocs m']
           where
-            goShowT (x, t) = "(read="  ++ show x              ++
-                             ",write=" ++ show (getWriteT t) ++
-                             ",to state=" ++ show (getQT t)  ++ ")"
+            goShowT (x, t) = show q ++
+                             " --- " ++ show x ++ "/" ++ show (getWriteT t) ++ " --> " ++
+                             show (getQT t)
 
 -- |The 'getWriteT' function returns the write part of a transition.
 getWriteT :: T a w -> w
