@@ -1,26 +1,25 @@
 module BPredictor.FST.GFST (
   -- * Types
-  S(..)
+  Q(..)
 , T(..)
 , FST(..)
 , Alph
 
   -- * Making
 , emptyFST
-, mkS
+, mkQ
 , mkT
 
   -- automata
 , transFST
-, availabletransFST
 , readFST
 , readFST'
 , insertFST
-, statesFST
+, qsFST
 
   -- * Transitions
-, getLabelT
-, getStateT
+, getOutputT
+, getQT
 ) where
 
 import           Control.Arrow
@@ -31,54 +30,55 @@ import           Data.Maybe
 
 type Alph = String
 
-newtype S a = S { getS :: a } deriving (Eq, Ord)
+-- State of finite state transducers
+newtype Q a = Q { getQ :: a } deriving (Eq, Ord)
 
-newtype T a output = T { getT :: (output, S a) } deriving (Show, Eq, Ord)
+-- Transition of finite state transducers
+newtype T a o = T { getT :: (o, Q a) } deriving (Show, Eq, Ord)
 
-type TS a input output = M.Map input (T a output)
+type KFST a     = (Q a)
+type VFST a i o = M.Map i (T a o)
 
-newtype FST a input output = FST { getM :: M.Map (S a) (TS a input output) }
+-- Finit state transducer
+newtype FST a i o = FST { getM :: M.Map (KFST a) (VFST a i o) }
 
-instance Show a => Show (S a) where
-  show S { getS = a } = show a
+instance Show a => Show (Q a) where
+  show Q { getQ = q } = show q
 
-instance (Show a, Show input, Show output, Ord a) => Show (FST a input output) where
+instance (Show a, Show i, Show o, Ord a) => Show (FST a i o) where
   show fst@FST { getM = m } =
-    L.intercalate "\n" [showS q | q <- statesFST fst]
+    L.intercalate "\n" [showQ q | q <- qsFST fst]
       where
-        showS q = "state=" ++ show q ++ " transitions=[" ++ showT q ++ "]"
+        showQ q = "state=" ++ show q ++ " transitions=[" ++ showT q ++ "]"
         showT q = L.intercalate "," [goShowT t | let Just m' = M.lookup q m
                                                , t <- M.assocs m']
           where
-            goShowT (x, t) = "(char="  ++ show x            ++
-                             ",label=" ++ show (getLabelT t) ++
-                             ",state=" ++ show (getStateT t) ++ ")"
+            goShowT (x, t) = "(char="  ++ show x              ++
+                             ",label=" ++ show (getOutputT t) ++
+                             ",state=" ++ show (getQT t)  ++ ")"
 
-getLabelT :: T a output -> output
-getLabelT (T t) = fst t
+getOutputT :: T a o -> o
+getOutputT (T t) = fst t
 
-getStateT :: T a output -> S a
-getStateT (T t) = snd t
+getQT :: T a o -> Q a
+getQT (T t) = snd t
 
-emptyFST :: FST a input output
+emptyFST :: FST a i o
 emptyFST = FST { getM = M.empty }
 
-mkS :: a -> S a
-mkS a = S { getS = a }
+mkQ :: a -> Q a
+mkQ q = Q { getQ = q }
 
-mkT :: output -> S a -> T a output
+mkT :: o -> Q a -> T a o
 mkT o q =  T { getT = (o, q) }
 
-statesFST :: (Ord a) => FST a input output -> [S a]
-statesFST = L.sort . M.keys . getM
+qsFST :: (Ord a) => FST a i o -> [Q a]
+qsFST = L.sort . M.keys . getM
 
-transFST :: (Ord a, Ord input) => S a -> input -> FST a input output -> Maybe (T a output)
+transFST :: (Ord a, Ord i) => Q a -> i -> FST a i o -> Maybe (T a o)
 transFST q x fST = M.lookup q (getM fST) >>= M.lookup x
 
-availabletransFST :: (Ord a) => S a -> FST a input output -> Maybe [(input, T a output)]
-availabletransFST q fST = M.lookup q (getM fST) >>= (Just . M.assocs)
-
-readFST :: (Ord a, Ord input) => S a -> [input] -> FST a input output -> Maybe ([T a output], S a)
+readFST :: (Ord a, Ord i) => Q a -> [i] -> FST a i o -> Maybe ([T a o], Q a)
 readFST q xs fST = F.foldl step acc0 xs >>= (Just . first L.reverse)
   where
     acc0 = Just ([], q)
@@ -86,12 +86,12 @@ readFST q xs fST = F.foldl step acc0 xs >>= (Just . first L.reverse)
     step Nothing    _ = Nothing
     step (Just acc) x = transFST (snd acc) x fST >>= updateAcc
       where
-        updateAcc t = Just (t : fst acc, getStateT t)
+        updateAcc t = Just (t : fst acc, getQT t)
 
-readFST' :: (Ord a, Ord input) => S a -> [input] -> FST a input output -> Maybe ([output], S a)
-readFST' q xs fst = readFST q xs fst >>= (Just . first (fmap getLabelT))
+readFST' :: (Ord a, Ord i) => Q a -> [i] -> FST a i o -> Maybe ([o], Q a)
+readFST' q xs fST = readFST q xs fST >>= (Just . first (fmap getOutputT))
 
-insertFST :: (Ord a, Ord input) => S a -> input -> T a output -> FST a input output -> FST a input output
+insertFST :: (Ord a, Ord i) => Q a -> i -> T a o -> FST a i o -> FST a i o
 insertFST q x t FST { getM = m } = FST { getM = m' }
   where
     m' = case M.lookup q m of

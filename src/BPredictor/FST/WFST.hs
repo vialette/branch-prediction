@@ -1,6 +1,6 @@
 module BPredictor.FST.WFST (
   -- * Types
-  S
+  Q
 , T
 , FST
 
@@ -23,7 +23,7 @@ import qualified BPredictor.FST.BP2FST as BP2FST
 import           BPredictor.Nat
 import qualified BPredictor.Utils      as Utils
 
-type S = GFST.S String
+type Q = GFST.Q String
 
 type T = GFST.T String String
 
@@ -32,10 +32,10 @@ type FST = GFST.FST String Char String
 emptyString :: String
 emptyString = ""
 
-initS :: S
-initS = GFST.mkS emptyString
+initS :: Q
+initS = GFST.mkQ emptyString
 
-readFromInitA :: String -> FST -> Maybe ([T], S)
+readFromInitA :: String -> FST -> Maybe ([T], Q)
 readFromInitA = GFST.readFST initS
 
 mkBackboneA :: String -> FST
@@ -44,24 +44,24 @@ mkBackboneA = F.foldr step GFST.emptyFST . Utils.zipInits
     step (xs, ys) = GFST.insertFST q x t
       where
         x  = L.last ys
-        q  = GFST.mkS xs
-        q' = GFST.mkS ys
+        q  = GFST.mkQ xs
+        q' = GFST.mkQ ys
         t  = GFST.mkT "1" q'
 
 mkFST :: GFST.Alph -> String -> FST
-mkFST alph xs = F.foldl step (mkBackboneA xs) . fmap GFST.mkS $ L.inits xs
+mkFST alph xs = F.foldl step (mkBackboneA xs) . fmap GFST.mkQ $ L.inits xs
   where
-    step a q = F.foldl (goMkFST xs q) a alph
+    step wFST q = F.foldl (goMkFST xs q) wFST alph
 
-goMkFST :: String -> S -> FST -> Char -> FST
-goMkFST xs q fST x = case GFST.transFST q x fST of
-  Just _  -> fST
-  Nothing -> GFST.insertFST q x t fST
+goMkFST :: String -> Q -> FST -> Char -> FST
+goMkFST xs q wFST x = case GFST.transFST q x wFST of
+  Just _  -> wFST
+  Nothing -> GFST.insertFST q x t wFST
     where
       t  = GFST.mkT l q'
         where
-          l = (if GFST.getS q == xs && x == L.head xs then "10" else "0") ++
-              F.concat (fmap GFST.getLabelT ts)
-      Just (ts, q') = readFromInitA ys fST
+          l = (if GFST.getQ q == xs && x == L.head xs then "10" else "0") ++
+              F.concat (fmap GFST.getOutputT ts)
+      Just (ts, q') = readFromInitA ys wFST
         where
-          ys = Utils.next (GFST.getS q) x
+          ys = Utils.next (GFST.getQ q) x

@@ -1,7 +1,7 @@
 module BPredictor.FST.BP2FST (
   -- * Types
   BP(..)
-, S
+, Q
 , T
 , FST
 
@@ -17,7 +17,7 @@ import           BPredictor.Nat
 
 data BP = Nu2 | Nu1 | Tau1 | Tau2 deriving (Show, Eq, Ord)
 
-type S = GFST.S BP
+type Q = GFST.Q BP
 
 type T = GFST.T BP Nat
 
@@ -32,10 +32,10 @@ mismatch = '0'
 mkFST :: FST
 mkFST = F.foldr (uncurry3 GFST.insertFST) GFST.emptyFST ts
   where
-    qNu2  = GFST.mkS Nu2
-    qNu1  = GFST.mkS Nu1
-    qTau1 = GFST.mkS Tau1
-    qTau2 = GFST.mkS Tau2
+    qNu2  = GFST.mkQ Nu2
+    qNu1  = GFST.mkQ Nu1
+    qTau1 = GFST.mkQ Tau1
+    qTau2 = GFST.mkQ Tau2
 
     ts  = [ ( qNu2, mismatch, GFST.mkT 0  qNu2)
           , ( qNu2,    match, GFST.mkT 1  qNu1)

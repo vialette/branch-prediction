@@ -25,16 +25,13 @@ source-repository head
 
 library
   exposed-modules:
-      BPredictor.Auto.Auto
-      BPredictor.Auto.BP2Auto
-      BPredictor.Auto.PAuto
-      BPredictor.Auto.WAuto
       BPredictor.FST.GFST
       BPredictor.FST.BP2FST
+      BPredictor.FST.PFST
       BPredictor.FST.WFST
       BPredictor.Nat
-  other-modules:
       BPredictor.Utils
+  other-modules:
       Paths_branch_prediction
   autogen-modules:
       Paths_branch_prediction
