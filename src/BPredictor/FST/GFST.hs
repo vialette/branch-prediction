@@ -18,7 +18,7 @@ module BPredictor.FST.GFST (
 , qsFST
 
   -- * Transitions
-, getOutputT
+, getWriteT
 , getQT
 ) where
 
@@ -53,12 +53,14 @@ instance (Show a, Show r, Show w, Ord a) => Show (FST a r w) where
         showT q = L.intercalate "," [goShowT t | let Just m' = M.lookup q m, t <- M.assocs m']
           where
             goShowT (x, t) = "(read="  ++ show x              ++
-                             ",write=" ++ show (getOutputT t) ++
+                             ",write=" ++ show (getWriteT t) ++
                              ",to state=" ++ show (getQT t)  ++ ")"
 
-getOutputT :: T a w -> w
-getOutputT (T t) = fst t
+-- |The 'getWriteT' function returns the write part of a transition.
+getWriteT :: T a w -> w
+getWriteT (T t) = fst t
 
+-- |The 'getQT' function returns the target state of a transition.
 getQT :: T a w -> Q a
 getQT (T t) = snd t
 
@@ -88,7 +90,7 @@ readFST q xs fST = F.foldl step acc0 xs >>= (Just . first L.reverse)
         updateAcc t = Just (t : fst acc, getQT t)
 
 readFST' :: (Ord a, Ord r) => Q a -> [r] -> FST a r w -> Maybe ([w], Q a)
-readFST' q xs fST = readFST q xs fST >>= (Just . first (fmap getOutputT))
+readFST' q xs fST = readFST q xs fST >>= (Just . first (fmap getWriteT))
 
 insertFST :: (Ord a, Ord r) => Q a -> r -> T a w -> FST a r w -> FST a r w
 insertFST q x t FST { getM = m } = FST { getM = m' }

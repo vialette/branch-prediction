@@ -64,7 +64,7 @@ goMkFST xs q wFST x = case GFST.transFST q x wFST of
       t  = GFST.mkT l q'
         where
           l = (if GFST.getQ q == xs && x == L.head xs then "10" else "0") ++
-              F.concat (fmap GFST.getOutputT ts)
+              F.concat (fmap GFST.getWriteT ts)
       -- readFromInitA cannot fail for complete transducers
       (ts, q') = fromJust $ readFromInitA ys wFST
         where

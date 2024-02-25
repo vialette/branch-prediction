@@ -60,8 +60,8 @@ mkFST alph xs = goMkFST [initQ] GFST.emptyFST
               where
                 pFSTStep' = GFST.insertFST q x t pFSTStep
                 Just tWFST           = GFST.transFST qWFST   x  wFST
-                Just (os', qBP2FST') = GFST.readFST' qBP2FST os bp2FST
+                Just (ws', qBP2FST') = GFST.readFST' qBP2FST ws bp2FST
                   where
-                    os = GFST.getOutputT tWFST
+                    ws = GFST.getWriteT tWFST
                 q' = GFST.mkQ (GFST.getQT tWFST, qBP2FST')
-                t  = GFST.mkT (F.sum os') q'
+                t  = GFST.mkT (F.sum ws') q'
