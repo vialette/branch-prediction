@@ -31,37 +31,42 @@ instance (Show a, Show r, Show w, Ord a, Ord r) => Show (FST a r w) where
       step acc = (++) acc . showT
         where
           showT t = "q:"    ++ show (FST.T.getQFrom t) ++
-                    " --- " ++ show (FST.T.getR t)     ++
+                    "\t--- " ++ show (FST.T.getR t)    ++
                                "/"                     ++
                                show (FST.T.getW t)     ++
-                    " --> " ++
-                    "q:"    ++ show (FST.T.getQTo t)
+                    " --> \t"                          ++
+                    "q:"    ++ show (FST.T.getQTo t)   ++
+                    "\n"
 
 -- Insert a transition in a finite state transducers.
 -- Transition are sorted increasingly.
 insertT :: (Ord a, Ord r, Ord w) => FST.T.T a r w -> [FST.T.T a r w] -> [FST.T.T a r w]
 insertT t = go
   where
-    go [] = [t]
+    qFrom = FST.T.getQFrom t
+    r     = FST.T.getR     t
+    
+    go []                          = [t]
     go (t' : ts)
-      | t > t'    = t' : go ts
-      | t == t'   = t : ts
-      | otherwise = t : t' : ts
+      | qFrom  < qFrom'            = t : t' : ts
+      | qFrom == qFrom' && r  < r' = t : t' : ts
+      | qFrom == qFrom' && r == r' = t : ts
+      | otherwise                  = t' : go ts
+      where
+        qFrom' = FST.T.getQFrom t'
+        r'     = FST.T.getR     t'
 
 -- Search for transition in a finite state transducer.
 -- Transition are sorted increasingly.
 lookupT :: (Ord a, Ord r) => FST.Q.Q a -> r -> [FST.T.T a r w] -> Maybe (FST.T.T a r w)
-lookupT qFrom r = go
+lookupT _     _ []             = Nothing
+lookupT qFrom r (t : ts)
+  | qFrom  < qFrom'            = Nothing
+  | qFrom == qFrom' && r == r' = Just t
+  | otherwise                  = lookupT qFrom r ts
   where
-    go [] = Nothing
-    go (t : ts)
-      | qFrom  < qFrom'            = go ts
-      | qFrom == qFrom' && r == r' = Just t
-      | qFrom == qFrom' && r  < r' = go ts
-      | otherwise                  = Nothing
-      where
-        qFrom' = FST.T.getQFrom t
-        r'     = FST.T.getR     t
+    qFrom' = FST.T.getQFrom t
+    r'     = FST.T.getR     t
 
 -- |The 'qsFST' functions returns all states of a finite state transducer.
 qsFST :: (Ord a) => FST a r w -> [FST.Q.Q a]
@@ -84,9 +89,7 @@ readFST qFrom rs fST = F.foldl step acc0 rs >>= (Just . first L.reverse)
   where
     acc0 = Just ([], qFrom)
     step Nothing    _ = Nothing
-    step (Just acc) x = tFST (snd acc) x fST >>= updateAcc
-      where
-        updateAcc t = Just (t : fst acc, FST.T.getQTo t)
+    step (Just acc) r = tFST (snd acc) r fST >>= (\t -> Just (t : fst acc, FST.T.getQTo t))
 
 readFST' :: (Ord a, Ord r) => FST.Q.Q a -> [r] -> FST a r w -> Maybe ([w], FST.Q.Q a)
 readFST' qFrom r fST = readFST qFrom r fST >>= (Just . first (fmap FST.T.getW))

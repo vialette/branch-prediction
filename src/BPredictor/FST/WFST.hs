@@ -47,24 +47,26 @@ initS = FST.Q.mk emptyString
 readFromInitA :: [R] -> FST -> Maybe ([T], Q)
 readFromInitA = GFST.readFST initS
 
-mkBackboneA :: [R] -> FST
-mkBackboneA = F.foldr step GFST.emptyFST . Utils.zipInits
+mkBackbone :: [R] -> FST
+mkBackbone = F.foldr step GFST.emptyFST . Utils.zipInits
   where
-    step (xs, ys) = GFST.insertFST (FST.T.mk qFrom r w qTo)
+    step (xs, ys) = GFST.insertFST t
       where
-        qFrom = FST.Q.mk xs
-        r     = L.last ys
-        w     = "1"
-        qTo   = FST.Q.mk ys
+        t = FST.T.mk qFrom r w qTo
+          where
+            qFrom = FST.Q.mk xs
+            r     = L.last ys
+            w     = "1"
+            qTo   = FST.Q.mk ys
 
 -- |The 'mkFst' function returns the word transducer that correspond to a given pattern.
 mk :: [R] -> [R] -> FST
-mk alph xs = F.foldl step (mkBackboneA xs) . fmap FST.Q.mk $ L.inits xs
+mk alph xs = F.foldl step (mkBackbone xs) . fmap FST.Q.mk $ L.inits xs
   where
-    step wFST q = F.foldl (goMk xs q) wFST alph
+    step wFST qFrom = F.foldl (stepMk xs qFrom) wFST alph
 
-goMk :: [R] -> Q -> FST -> Char -> FST
-goMk xs qFrom wFST r = case GFST.tFST qFrom r wFST of
+stepMk :: [R] -> Q -> FST -> Char -> FST
+stepMk xs qFrom wFST r = case GFST.tFST qFrom r wFST of
   Just _  -> wFST
   Nothing -> GFST.insertFST t wFST
     where
@@ -75,3 +77,4 @@ goMk xs qFrom wFST r = case GFST.tFST qFrom r wFST of
       (ts, qTo) = fromJust $ readFromInitA ys wFST
         where
           ys = Utils.next (FST.Q.getQ qFrom) r
+
