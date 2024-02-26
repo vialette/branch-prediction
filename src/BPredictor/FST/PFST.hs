@@ -66,5 +66,5 @@ mkFST alph xs = goMkFST [initQ] GFST.emptyFST
                 Just (ws', qBP2FST') = GFST.readFST' qBP2FST ws bp2FST
                   where
                     ws = GFST.getWriteT tWFST
-                q' = GFST.mkQ (GFST.getQT tWFST, qBP2FST')
+                q' = GFST.mkQ (GFST.getTargetStateT tWFST, qBP2FST')
                 t  = GFST.mkT (F.sum ws') q'

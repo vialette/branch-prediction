@@ -10,7 +10,7 @@ module BPredictor.FST.GFST (
 , mkQ
 , mkT
 
-  -- automata
+  -- £ Querying
 , transFST
 , readFST
 , readFST'
@@ -19,7 +19,7 @@ module BPredictor.FST.GFST (
 
   -- * Transitions
 , getWriteT
-, getQT
+, getTargetStateT
 ) where
 
 import           Control.Arrow
@@ -42,6 +42,10 @@ type VFST a r w = M.Map r (T a w)
 -- Finit state transducer
 newtype FST a r w = FST { getM :: M.Map (KFST a) (VFST a r w) }
 
+-- type KFST a r   = (Q a,   r)
+-- type VFST a r w = (  w, Q a)
+-- type FST  a r w = M.Map (KFST a r) (VFST a r w) 
+
 instance Show a => Show (Q a) where
   show Q { getQ = q } = show q
 
@@ -49,19 +53,19 @@ instance (Show a, Show r, Show w, Ord a) => Show (FST a r w) where
   show fST@FST { getM = m } =
     L.intercalate "\n" [showQ q | q <- qsFST fST]
       where
-        showQ q = L.intercalate "\n" [goShowT t | let Just m' = M.lookup q m, t <- M.assocs m']
+        showQ q = L.intercalate "\n" [showT t | let Just m' = M.lookup q m, t <- M.assocs m']
           where
-            goShowT (x, t) = "q:" ++ show q ++
-                             " --- " ++ show x ++ "/" ++ show (getWriteT t) ++ " --> " ++
-                             "q:" ++ show (getQT t)
+            showT (x, t) = "q:" ++ show q ++
+                           " --- " ++ show x ++ "/" ++ show (getWriteT t) ++ " --> " ++
+                           "q:" ++ show (getTargetStateT t)
 
 -- |The 'getWriteT' function returns the write part of a transition.
 getWriteT :: T a w -> w
 getWriteT (T t) = fst t
 
--- |The 'getQT' function returns the target state of a transition.
-getQT :: T a w -> Q a
-getQT (T t) = snd t
+-- |The 'getTargetStateT' function returns the target state of a transition.
+getTargetStateT :: T a w -> Q a
+getTargetStateT (T t) = snd t
 
 emptyFST :: FST a r w
 emptyFST = FST { getM = M.empty }
@@ -91,7 +95,7 @@ readFST q xs fST = F.foldl step acc0 xs >>= (Just . first L.reverse)
     step Nothing    _ = Nothing
     step (Just acc) x = transFST (snd acc) x fST >>= updateAcc
       where
-        updateAcc t = Just (t : fst acc, getQT t)
+        updateAcc t = Just (t : fst acc, getTargetStateT t)
 
 readFST' :: (Ord a, Ord r) => Q a -> [r] -> FST a r w -> Maybe ([w], Q a)
 readFST' q xs fST = readFST q xs fST >>= (Just . first (fmap getWriteT))
