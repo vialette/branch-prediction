@@ -51,9 +51,9 @@ instance (Show a, Show r, Show w, Ord a) => Show (FST a r w) where
       where
         showQ q = L.intercalate "\n" [goShowT t | let Just m' = M.lookup q m, t <- M.assocs m']
           where
-            goShowT (x, t) = show q ++
+            goShowT (x, t) = "q:" ++ show q ++
                              " --- " ++ show x ++ "/" ++ show (getWriteT t) ++ " --> " ++
-                             show (getQT t)
+                             "q:" ++ show (getQT t)
 
 -- |The 'getWriteT' function returns the write part of a transition.
 getWriteT :: T a w -> w
@@ -66,15 +66,20 @@ getQT (T t) = snd t
 emptyFST :: FST a r w
 emptyFST = FST { getM = M.empty }
 
+-- |The 'mkQ' functions returns a new state.
 mkQ :: a -> Q a
 mkQ q = Q { getQ = q }
 
+-- |The 'mkT' functions returns a new transition.
 mkT :: w -> Q a -> T a w
 mkT w q =  T { getT = (w, q) }
 
+-- |The 'qsFST' functions returns all states of a finite state transducer.
 qsFST :: (Ord a) => FST a r w -> [Q a]
 qsFST = L.sort . M.keys . getM
 
+-- |The 'transFST' function returns a transition from a source state, a read, a write and
+-- a target state. 
 transFST :: (Ord a, Ord r) => Q a -> r -> FST a r w -> Maybe (T a w)
 transFST q x fST = M.lookup q (getM fST) >>= M.lookup x
 
@@ -91,6 +96,9 @@ readFST q xs fST = F.foldl step acc0 xs >>= (Just . first L.reverse)
 readFST' :: (Ord a, Ord r) => Q a -> [r] -> FST a r w -> Maybe ([w], Q a)
 readFST' q xs fST = readFST q xs fST >>= (Just . first (fmap getWriteT))
 
+-- |The 'insertFST' fucntion inserts a transition in a finite state transducer.
+-- If a transition with the same source state and the same read is already in
+-- the finite state transducer, it is replaced.
 insertFST :: (Ord a, Ord r) => Q a -> r -> T a w -> FST a r w -> FST a r w
 insertFST q x t FST { getM = m } = FST { getM = m' }
   where

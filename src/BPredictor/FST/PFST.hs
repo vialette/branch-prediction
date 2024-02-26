@@ -4,7 +4,7 @@ module BPredictor.FST.PFST (
 , T
 , FST
 
-  -- * making
+  -- * Making
 , mkFST
 ) where
 
@@ -16,10 +16,13 @@ import qualified BPredictor.FST.BP2FST as BP2FST
 import qualified BPredictor.FST.WFST   as WFST
 import           BPredictor.Nat
 
+-- |Type of state
 type Q = GFST.Q (WFST.Q, BP2FST.Q)
 
+-- |Type of transition
 type T = GFST.T (WFST.Q, BP2FST.Q) Nat
 
+-- |Type of finite state transducer
 type FST = GFST.FST (WFST.Q, BP2FST.Q) Char Nat
 
 mkFST :: GFST.Alph -> String -> FST
