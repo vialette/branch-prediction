@@ -38,12 +38,15 @@ ghc-options:
 library:
   source-dirs: src
   exposed-modules:
+    - BPredictor.FST.Inner.Q
+    - BPredictor.FST.Inner.T
     - BPredictor.FST.GFST
     - BPredictor.FST.BP2FST
     - BPredictor.FST.PFST
     - BPredictor.FST.WFST
     - BPredictor.Nat
     - BPredictor.Utils
+
 
 executables:
   branch-prediction-exe:

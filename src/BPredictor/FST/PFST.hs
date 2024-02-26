@@ -5,66 +5,72 @@ module BPredictor.FST.PFST (
 , FST
 
   -- * Making
-, mkFST
+, mk
 ) where
 
-import qualified Data.Foldable         as F
-import qualified Data.List             as L
+import qualified Data.Foldable          as F
+import qualified Data.List              as L
 
-import qualified BPredictor.FST.GFST   as GFST
-import qualified BPredictor.FST.BP2FST as BP2FST
-import qualified BPredictor.FST.WFST   as WFST
+import qualified BPredictor.FST.BP2FST  as BP2FST
+import qualified BPredictor.FST.GFST    as GFST
+import qualified BPredictor.FST.Inner.Q as FST.Q
+import qualified BPredictor.FST.Inner.T as FST.T
+import qualified BPredictor.FST.WFST    as WFST
 import           BPredictor.Nat
 
+type A = (WFST.Q, BP2FST.Q)
+type R = Char
+type W = Nat
+
 -- |Type of state
-type Q = GFST.Q (WFST.Q, BP2FST.Q)
+type Q = FST.Q.Q A
 
 -- |Type of transition
-type T = GFST.T (WFST.Q, BP2FST.Q) Nat
+type T = FST.T.T A R W
 
 -- |Type of finite state transducer
-type FST = GFST.FST (WFST.Q, BP2FST.Q) Char Nat
+type FST = GFST.FST A R W
 
-mkFST :: GFST.Alph -> String -> FST
-mkFST alph xs = goMkFST [initQ] GFST.emptyFST
+mk :: [R] -> [R] -> FST
+mk alph xs = goMk [initQ] GFST.emptyFST
   where
-    -- the associated word finite state tranducer
-    wFST   = WFST.mkFST   alph xs
+    -- the associated word finite state transducer
+    wFST   = WFST.mk alph xs
 
     -- the associated 2-bit predictor finite state transducer
-    bp2FST = BP2FST.mkFST
+    bp2FST = BP2FST.mk
 
     -- the initial state of wFST
-    initQWFST   = GFST.mkQ WFST.emptyString
+    initqFromWFST   = FST.Q.mk WFST.emptyString
 
     -- the initial state of bp2FST
-    initQBP2FST = GFST.mkQ BP2FST.Nu2
+    initqFromBP2FST = FST.Q.mk BP2FST.Nu2
 
     -- the initial state of the product finite state transducer
     initQ :: Q
-    initQ = GFST.mkQ (initQWFST, initQBP2FST)
+    initQ = FST.Q.mk (initqFromWFST, initqFromBP2FST)
 
     -- develop states of the product finite state transducer
-    goMkFST :: [Q] -> FST -> FST
-    goMkFST []                    pFST = pFST
-    goMkFST (q : qs)  pFST
-      | q `L.elem` GFST.qsFST pFST     = goMkFST qs           pFST
-      | otherwise                      = goMkFST (qs'' ++ qs) pFST'
+    goMk :: [Q] -> FST -> FST
+    goMk []            pFST            = pFST
+    goMk (qFrom : qs)  pFST
+      | qFrom `L.elem` GFST.qsFST pFST = goMk qs           pFST
+      | otherwise                      = goMk (qs'' ++ qs) pFST'
       where
-        qWFST   = fst $ GFST.getQ q
-        qBP2FST = snd $ GFST.getQ q
+        qFromWFST   = fst $ FST.Q.getQ qFrom
+        qFromBP2FST = snd $ FST.Q.getQ qFrom
 
         -- develop the current state of the product finite state transducer
         -- for every character of the alphabet
         (qs'', pFST') = F.foldr step ([], pFST) alph
           where
-            step :: Char -> ([Q], FST) -> ([Q], FST)
-            step x (qs', pFSTStep) = (q' : qs', pFSTStep')
+            step :: R -> ([Q], FST) -> ([Q], FST)
+            step r (qs', pFSTStep) = (qTo : qs', pFSTStep')
               where
-                pFSTStep' = GFST.insertFST q x t pFSTStep
-                Just tWFST           = GFST.transFST qWFST   x  wFST
-                Just (ws', qBP2FST') = GFST.readFST' qBP2FST ws bp2FST
+                pFSTStep' = GFST.insertFST t pFSTStep
+                Just tWFST               = GFST.tFST qFromWFST r wFST
+                Just (ws', qFromBP2FST') = GFST.readFST' qFromBP2FST ws bp2FST
                   where
-                    ws = GFST.getWriteT tWFST
-                q' = GFST.mkQ (GFST.getTargetStateT tWFST, qBP2FST')
-                t  = GFST.mkT (F.sum ws') q'
+                    ws = FST.T.getW tWFST
+                qTo = FST.Q.mk (FST.T.getQTo tWFST, qFromBP2FST')
+                t   = FST.T.mk qFrom r (F.sum ws') qTo

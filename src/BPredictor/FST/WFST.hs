@@ -5,27 +5,34 @@ module BPredictor.FST.WFST (
 , FST
 
   -- * Making
-, mkFST
+, mk
 
   --
 , emptyString
 ) where
 
-import qualified Data.Foldable         as F
-import qualified Data.List             as L
+import qualified Data.Foldable          as F
+import qualified Data.List              as L
 import           Data.Maybe
 
-import qualified BPredictor.FST.GFST   as GFST
-import qualified BPredictor.Utils      as Utils
+import qualified BPredictor.FST.GFST    as GFST
+import qualified BPredictor.FST.Inner.Q as FST.Q
+import qualified BPredictor.FST.Inner.T as FST.T
+import qualified BPredictor.Utils       as Utils
+
+-- Specialization
+type A = String
+type R = Char
+type W = String
 
 -- |Type of state
-type Q = GFST.Q String
+type Q = FST.Q.Q A
 
 -- |Type of transition
-type T = GFST.T String String
+type T = FST.T.T A R W
 
 -- |Type of finite state transducer
-type FST = GFST.FST String Char String
+type FST = GFST.FST A R W
 
 emptyString :: String
 emptyString = ""
@@ -33,39 +40,38 @@ emptyString = ""
 -- Finite state transducer with one state corresponding to the empty string
 -- and no transition.
 initS :: Q
-initS = GFST.mkQ emptyString
+initS = FST.Q.mk emptyString
 
 -- Specialize the function GFST.readFST for reading from the initial state
 -- (i.e. the state corresponding to the empty string).
-readFromInitA :: String -> FST -> Maybe ([T], Q)
+readFromInitA :: [R] -> FST -> Maybe ([T], Q)
 readFromInitA = GFST.readFST initS
 
-mkBackboneA :: String -> FST
+mkBackboneA :: [R] -> FST
 mkBackboneA = F.foldr step GFST.emptyFST . Utils.zipInits
   where
-    step (xs, ys) = GFST.insertFST q x t
+    step (xs, ys) = GFST.insertFST (FST.T.mk qFrom r w qTo)
       where
-        x  = L.last ys
-        q  = GFST.mkQ xs
-        q' = GFST.mkQ ys
-        t  = GFST.mkT "1" q'
+        qFrom = FST.Q.mk xs
+        r     = L.last ys
+        w     = "1"
+        qTo   = FST.Q.mk ys
 
 -- |The 'mkFst' function returns the word transducer that correspond to a given pattern.
-mkFST :: GFST.Alph -> String -> FST
-mkFST alph xs = F.foldl step (mkBackboneA xs) . fmap GFST.mkQ $ L.inits xs
+mk :: [R] -> [R] -> FST
+mk alph xs = F.foldl step (mkBackboneA xs) . fmap FST.Q.mk $ L.inits xs
   where
-    step wFST q = F.foldl (goMkFST xs q) wFST alph
+    step wFST q = F.foldl (goMk xs q) wFST alph
 
-goMkFST :: String -> Q -> FST -> Char -> FST
-goMkFST xs q wFST x = case GFST.transFST q x wFST of
+goMk :: [R] -> Q -> FST -> Char -> FST
+goMk xs qFrom wFST r = case GFST.tFST qFrom r wFST of
   Just _  -> wFST
-  Nothing -> GFST.insertFST q x t wFST
+  Nothing -> GFST.insertFST t wFST
     where
-      t  = GFST.mkT l q'
+      t  = FST.T.mk qFrom r w qTo
         where
-          l = (if GFST.getQ q == xs && x == L.head xs then "10" else "0") ++
-              F.concat (fmap GFST.getWriteT ts)
+          w = (if FST.Q.getQ qFrom == xs && r == L.head xs then "10" else "0") ++ F.concat (fmap FST.T.getW ts)
       -- readFromInitA cannot fail for complete transducers
-      (ts, q') = fromJust $ readFromInitA ys wFST
+      (ts, qTo) = fromJust $ readFromInitA ys wFST
         where
-          ys = Utils.next (GFST.getQ q) x
+          ys = Utils.next (FST.Q.getQ qFrom) r

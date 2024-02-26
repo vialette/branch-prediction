@@ -25,6 +25,8 @@ source-repository head
 
 library
   exposed-modules:
+      BPredictor.FST.Inner.Q
+      BPredictor.FST.Inner.T
       BPredictor.FST.GFST
       BPredictor.FST.BP2FST
       BPredictor.FST.PFST
