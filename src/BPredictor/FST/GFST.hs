@@ -19,7 +19,6 @@ import           Control.Arrow
 import qualified Data.Foldable          as F
 import qualified Data.List              as L
 import qualified Data.List.Extra        as L.X
-import           Data.Maybe
 
 import qualified BPredictor.FST.Inner.Q as FST.Q
 import qualified BPredictor.FST.Inner.T as FST.T
@@ -42,7 +41,7 @@ instance (Show a, Show r, Show w, Ord a, Ord r) => Show (FST a r w) where
 
 -- Insert a transition in a finite state transducers.
 -- Transition are sorted increasingly.
-insertT :: (Ord a, Ord r, Ord w) => FST.T.T a r w -> [FST.T.T a r w] -> [FST.T.T a r w]
+insertT :: (Ord a, Ord r) => FST.T.T a r w -> [FST.T.T a r w] -> [FST.T.T a r w]
 insertT t = go
   where
     qFrom = FST.T.getQFrom t
@@ -96,11 +95,13 @@ readFST qFrom rs fST = F.foldl step acc0 rs >>= (Just . first L.reverse)
 readFST' :: (Ord a, Ord r) => FST.Q.Q a -> [r] -> FST a r w -> Maybe ([w], FST.Q.Q a)
 readFST' qFrom r fST = readFST qFrom r fST >>= (Just . first (fmap FST.T.getW))
 
-insertFST :: (Ord a, Ord r, Ord w) => FST.T.T a r w -> FST a r w -> FST a r w
+insertFST :: (Ord a, Ord r) => FST.T.T a r w -> FST a r w -> FST a r w
 insertFST t FST { getTs = ts } = FST { getTs = insertT t ts }
 
 emptyFST :: FST a r w
 emptyFST = FST { getTs = [] }
 
 isCompleteFST :: (Ord a, Ord r) => [r] -> FST a r w -> Bool
-isCompleteFST rs fST = L.null $ catMaybes [tFST qFrom r fST | r <- rs, qFrom <- qsFST fST]
+isCompleteFST rs fST = case sequence [tFST qFrom r fST | r <- rs, qFrom <- qsFST fST] of
+  Nothing -> False
+  Just _  -> True
