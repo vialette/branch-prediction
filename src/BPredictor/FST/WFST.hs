@@ -43,7 +43,7 @@ initS :: Q
 initS = FST.Q.mk emptyString
 
 mkPath :: [R] -> FST
-mkPath = F.foldr step GFST.emptyFST . Utils.zipInits
+mkPath = F.foldr step GFST.emptyFST . L.init . Utils.zipInits
   where
     step (xs, ys) = GFST.insertFST t
       where
@@ -56,7 +56,7 @@ mkPath = F.foldr step GFST.emptyFST . Utils.zipInits
 
 -- |The 'mkFst' function returns the word transducer that correspond to a given pattern.
 mk :: [R] -> [R] -> FST
-mk alph xs = F.foldl step (mkPath xs) . fmap FST.Q.mk $ L.inits xs
+mk alph xs = F.foldl step (mkPath xs) . fmap FST.Q.mk . L.init $ L.inits xs
   where
     step wFST qFrom = F.foldl (stepMk xs qFrom) wFST alph
 
@@ -67,9 +67,8 @@ stepMk xs qFrom wFST r = case GFST.tFST qFrom r wFST of
     where
       t  = FST.T.mk qFrom r w qTo
         where
-          w = (if FST.Q.getQ qFrom == xs && r == L.head xs then "10" else "0") ++ F.concat (fmap FST.T.getW ts)
+          w = (if FST.Q.getQ qFrom == L.init xs && r == L.head xs then "10" else "0") ++ F.concat (fmap FST.T.getW ts)
       -- readFromInitA cannot fail for complete transducers
       (ts, qTo) = fromJust $ GFST.readFST initS ys wFST
         where
           ys = Utils.next (FST.Q.getQ qFrom) r
-

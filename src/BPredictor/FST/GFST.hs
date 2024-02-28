@@ -13,12 +13,14 @@ module BPredictor.FST.GFST (
 , insertFST
 , qsFST
 , isCompleteFST
+, toMatrix
 ) where
 
 import           Control.Arrow
 import qualified Data.Foldable          as F
 import qualified Data.List              as L
 import qualified Data.List.Extra        as L.X
+import           Data.Maybe
 
 import qualified BPredictor.FST.Inner.Q as FST.Q
 import qualified BPredictor.FST.Inner.T as FST.T
@@ -46,7 +48,7 @@ insertT t = go
   where
     qFrom = FST.T.getQFrom t
     r     = FST.T.getR     t
-    
+
     go []                          = [t]
     go (t' : ts)
       | qFrom  < qFrom'            = t : t' : ts
@@ -85,6 +87,14 @@ tFST qFrom r = lookupT qFrom r . getTs
 tFST' :: (Ord a, Ord r) => FST.Q.Q a -> r -> FST a r w -> Maybe (w, FST.Q.Q a)
 tFST' qFrom r fST = tFST qFrom r fST >>= (Just . (FST.T.getW &&& FST.T.getQTo))
 
+tsQFromQTo :: (Eq a, Ord a, Ord r) => FST.Q.Q a -> FST.Q.Q a -> FST a r w -> [FST.T.T a r w]
+tsQFromQTo qFrom qTo = go . tsByQFST
+  where
+    go []                                   = []
+    go (ts : tss)
+      | FST.T.getQFrom (L.head ts) == qFrom = [t | t <- ts, FST.T.getQTo t == qTo]
+      | otherwise                           = go tss
+
 readFST :: (Ord a, Ord r) => FST.Q.Q a -> [r] -> FST a r w -> Maybe ([FST.T.T a r w], FST.Q.Q a)
 readFST qFrom rs fST = F.foldl step acc0 rs >>= (Just . first L.reverse)
   where
@@ -102,6 +112,10 @@ emptyFST :: FST a r w
 emptyFST = FST { getTs = [] }
 
 isCompleteFST :: (Ord a, Ord r) => [r] -> FST a r w -> Bool
-isCompleteFST rs fST = case sequence [tFST qFrom r fST | r <- rs, qFrom <- qsFST fST] of
-  Nothing -> False
-  Just _  -> True
+isCompleteFST rs fST = isJust $ sequence [tFST qFrom r fST | r <- rs, qFrom <- qsFST fST]
+
+--toMatrix :: (Ord a, Ord r) => FST.T.T a r w -> ([a], [[a]])
+toMatrix fST = (qs, rows)
+  where
+    qs   = qsFST fST
+    rows = [[fmap FST.T.getR ts | qTo <- qs,  let ts = tsQFromQTo qFrom qTo fST] | qFrom <- qs]
